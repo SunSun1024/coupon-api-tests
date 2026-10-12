@@ -41,7 +41,11 @@ allure open allure-report
 
 ## GitHub Actions
 
-`.github/workflows/coupon-api-tests.yml` 会在 push 和 pull request 时启动本地 FastAPI 服务，用独立 SQLite 数据库运行 `regression` 用例，生成 Allure 报告，并将报告作为名为 `coupon-api-allure-report` 的 workflow artifact 上传。打开对应的 Actions 运行记录，在 Artifacts 区域下载并解压即可查看 `index.html`。
+`.github/workflows/coupon-api-tests.yml` 会在 push 和 pull request 时启动本地 FastAPI 服务运行 `regression` 用例，并每天北京时间 09:00 运行一次；GitHub Actions 的 cron 使用 UTC（`0 1 * * *`），高负载时可能延迟。也可以在 **Actions → Coupon API tests → Run workflow** 手动运行。
+
+每次有 Allure 结果时，workflow 都会生成 HTML 并上传 `coupon-api-allure-report` artifact。测试失败但已产生 Allure 结果时，失败详情仍会生成并发布；没有结果时会保留上一份网页报告。只有 `main` 分支上的 push、定时或手动运行会部署 GitHub Pages，pull request 不会覆盖它。Pages 部署会替换上一次的报告，不保留历史趋势。
+
+仓库公开，所以 Pages 报告公开可访问。首次发布前，在 **Settings → Pages → Build and deployment** 选择 **GitHub Actions**。最新报告地址为 [https://sunsun1024.github.io/coupon-api-tests/](https://sunsun1024.github.io/coupon-api-tests/)，Actions 运行摘要中也会显示直达链接。artifact 仍可从对应运行记录的 Artifacts 区域下载；解压后，直接打开 `index.html` 即可。
 
 ## 调试用例
 

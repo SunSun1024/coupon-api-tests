@@ -3,6 +3,9 @@ name: Coupon API tests
 on:
   push:
   pull_request:
+  schedule:
+    - cron: "0 1 * * *"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -10,6 +13,8 @@ permissions:
 jobs:
   regression:
     runs-on: ubuntu-latest
+    outputs:
+      report_generated: ${{ steps.generate_allure_report.outputs.report_generated }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
@@ -56,18 +61,69 @@ jobs:
             --alluredir=allure-results --clean-alluredir
 
       - name: Generate Allure HTML report
-        if: always()
+        id: generate_allure_report
+        if: always() && !cancelled()
         run: |
-          if [ -d allure-results ]; then
-            allure generate allure-results -o allure-report
-          else
+          if [ ! -d allure-results ]; then
+            echo "report_generated=false" >> "$GITHUB_OUTPUT"
             echo "No Allure results were produced."
+            exit 0
           fi
 
+          allure generate allure-results -o allure-report
+          if [ ! -f allure-report/index.html ]; then
+            echo "Allure report generation did not create index.html."
+            exit 1
+          fi
+          echo "report_generated=true" >> "$GITHUB_OUTPUT"
+
       - name: Upload Allure report
-        if: always() && hashFiles('allure-report/index.html') != ''
+        if: always() && steps.generate_allure_report.outputs.report_generated == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: coupon-api-allure-report
           path: allure-report/
           if-no-files-found: error
+
+  publish-report:
+    needs: regression
+    if: >-
+      always() &&
+      !cancelled() &&
+      needs.regression.result != 'cancelled' &&
+      needs.regression.outputs.report_generated == 'true' &&
+      github.event_name != 'pull_request' &&
+      github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download Allure HTML report
+        uses: actions/download-artifact@v8
+        with:
+          name: coupon-api-allure-report
+          path: allure-report
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: allure-report
+
+      - name: Deploy Allure report
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Add report link to workflow summary
+        env:
+          REPORT_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          echo "## Allure report" >> "$GITHUB_STEP_SUMMARY"
+          echo "[Open the latest Allure report]($REPORT_URL)" >> "$GITHUB_STEP_SUMMARY"

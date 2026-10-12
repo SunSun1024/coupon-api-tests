@@ -15,7 +15,7 @@
 - 使用 fixture 管理 API 会话和测试数据清理。
 - 第一次发送接口请求前检查 API 服务是否可用，并提示如何启动服务。
 - 在本地生成 Allure 或 pytest-html 测试报告。
-- 通过 GitHub Actions 在 push 和 pull request 时运行回归测试并保存 Allure 报告。
+- 通过 GitHub Actions 在 push、pull request 和每日定时任务中运行回归测试，并发布最新的 Allure HTML 报告。
 
 ## 业务流程
 
@@ -156,7 +156,11 @@ python -m pytest -q -m regression tests \
 
 ## GitHub Actions
 
-`.github/workflows/coupon-api-tests.yml` 在 push 和 pull request 时自动启动 FastAPI 服务，使用独立 SQLite 数据库运行回归测试，并生成 Allure 报告。打开 GitHub 仓库的 **Actions** 页面，选择对应运行记录，可以在 Artifacts 区域下载 `coupon-api-allure-report`。
+`.github/workflows/coupon-api-tests.yml` 在 push 和 pull request 时自动运行回归测试，并每天北京时间 09:00 定时巡检（GitHub Actions 使用 UTC，计划时间是 01:00 UTC；高负载时可能延迟）。也可以在仓库的 **Actions → Coupon API tests → Run workflow** 中手动触发。
+
+最新 Allure 报告可以直接在浏览器打开：[查看 Coupon API Allure 报告](https://sunsun1024.github.io/coupon-api-tests/)。仓库是公开的，因此报告也公开可访问。首次使用前，请到 **Settings → Pages → Build and deployment**，将来源设为 **GitHub Actions**。
+
+Actions 运行记录仍会保留 `coupon-api-allure-report` artifact。它已经是 HTML 报告，但需要下载并解压后打开 `index.html`；上面的 Pages 链接会直接打开最新报告。每次默认分支发布都会替换 Pages 上的旧报告。Pull request 会运行测试并保存 artifact，但不会发布网页报告。
 
 ## 补充文档
 
