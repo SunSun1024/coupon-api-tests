@@ -4,6 +4,7 @@
 
 - `tests/support/coupon_api_client.py` 集中管理请求地址、超时时间和优惠券接口调用。测试仍然直接检查响应状态码和业务字段。
 - `api_client` fixture 把 API 地址、Requests 会话和数据清理登记器组合起来。每个测试都会得到自己的客户端和清理登记器。
+- `base_url` 和 `api_ready` 使用 session 作用域；第一次创建 API 客户端前会检查服务的 `/docs`。服务未启动时，Pytest 会提前停止并显示启动命令，避免每个接口用例重复报告连接错误。
 - 创建优惠券、领取成功时，客户端登记服务端返回的 ID。测试结束后，清理 fixture 先删除本测试创建的领取记录，再删除优惠券；没有登记的旧数据会保留。
 - `COUPON_DB_PATH` 用来让 API 服务和测试清理逻辑指向同一个 SQLite 文件。GitHub Actions 使用 runner 临时目录里的独立数据库，避免碰到开发者本地数据。
 
