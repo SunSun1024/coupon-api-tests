@@ -28,6 +28,7 @@ def test_concurrent_users_cannot_claim_more_than_last_coupon(tmp_path, monkeypat
             (coupon_id, "concurrent-last-stock", 2000, 10000, 1, 1, expires_at),
         )
 
+# Barrier(8) 的意思是：要等 8 个线程都到达这里，才让它们继续。这样它们都会先读到“库存剩 1”，然后再一起尝试更新，测试就能稳定复现并发竞争。
     worker_count = 8
     update_barrier = Barrier(worker_count)
 
