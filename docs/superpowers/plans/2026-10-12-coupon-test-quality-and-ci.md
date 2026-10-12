@@ -33,7 +33,7 @@
 
 - [x] Add a test proving an expired coupon cannot be claimed and its quantity stays unchanged.
 - [x] Add a test proving a coupon that expires after claim cannot be redeemed and remains claimed.
-- [x] Add a parallel last-stock test with eight distinct users; assert one HTTP 201, seven HTTP 409, and no other status.
+- [x] Add a parallel last-stock test with eight distinct users; assert one successful route call and seven HTTPException conflicts with status 409.
 - [x] Run the concurrency test against the current implementation and confirm it reproduces overselling before the fix.
 - [x] Check the conditional decrement's rowcount before inserting user_coupons; return the existing out-of-stock HTTP 409 when it is zero.
 - [ ] Run expiry and concurrency tests again, then run the full regression suite against a live API in GitHub Actions.

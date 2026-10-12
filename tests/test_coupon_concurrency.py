@@ -60,18 +60,18 @@ def test_concurrent_users_cannot_claim_more_than_last_coupon(tmp_path, monkeypat
                 f"concurrent-user-{worker_number}-{uuid4()}", coupon_id
             )
         except HTTPException as error:
-            return error.status_code, error.detail
-        return 201, response
+            return False, error.status_code, error.detail
+        return True, response
 
     with ThreadPoolExecutor(max_workers=worker_count) as executor:
         results = list(executor.map(claim_coupon, range(worker_count)))
 
-    statuses = [status_code for status_code, _ in results]
-    assert statuses.count(201) == 1, statuses
-    assert statuses.count(409) == worker_count - 1, statuses
-    assert {
-        detail for status_code, detail in results if status_code == 409
-    } == {"coupon is out of stock"}
+    successful_claims = [result for result in results if result[0]]
+    conflicts = [result for result in results if not result[0]]
+    assert len(successful_claims) == 1, results
+    assert len(conflicts) == worker_count - 1, results
+    assert {status_code for _, status_code, _ in conflicts} == {409}
+    assert {detail for _, _, detail in conflicts} == {"coupon is out of stock"}
 
     with database.connect() as connection:
         remaining_quantity = connection.execute(
