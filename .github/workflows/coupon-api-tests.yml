@@ -1,0 +1,73 @@
+name: Coupon API tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    env:
+      COUPON_DB_PATH: ${{ runner.temp }}/coupon-api-tests.db
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Set up Node.js for Allure CLI
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          npm install --global allure
+
+      - name: Start API and run regression tests
+        run: |
+          python -m uvicorn coupon_api.main:app --host 127.0.0.1 --port 8000 > "$RUNNER_TEMP/coupon-api.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          python - <<'PY'
+          import time
+          import requests
+
+          for _ in range(40):
+              try:
+                  response = requests.get("http://127.0.0.1:8000/docs", timeout=1)
+                  if response.status_code == 200:
+                      break
+              except requests.RequestException:
+                  time.sleep(0.5)
+          else:
+              raise SystemExit("API did not become ready; inspect coupon-api.log")
+          PY
+          python -m pytest -q -m regression tests \
+            --alluredir=allure-results --clean-alluredir
+
+      - name: Generate Allure HTML report
+        if: always()
+        run: |
+          if [ -d allure-results ]; then
+            allure generate allure-results -o allure-report
+          else
+            echo "No Allure results were produced."
+          fi
+
+      - name: Upload Allure report
+        if: always() && hashFiles('allure-report/index.html') != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: coupon-api-allure-report
+          path: allure-report/
+          if-no-files-found: error

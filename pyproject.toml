@@ -1,0 +1,7 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+markers = [
+    "smoke: quick checks of critical user flows",
+    "regression: broader coupon business behavior checks",
+]

@@ -1,0 +1,32 @@
+[
+  {
+    "case_id": "missing_name",
+    "remove_fields": ["name"],
+    "expected_error_field": "name"
+  },
+  {
+    "case_id": "empty_name",
+    "payload_overrides": {"name": ""},
+    "expected_error_field": "name"
+  },
+  {
+    "case_id": "zero_discount",
+    "payload_overrides": {"discount_amount_cents": 0},
+    "expected_error_field": "discount_amount_cents"
+  },
+  {
+    "case_id": "negative_minimum_order_amount",
+    "payload_overrides": {"minimum_order_amount_cents": -1},
+    "expected_error_field": "minimum_order_amount_cents"
+  },
+  {
+    "case_id": "zero_stock",
+    "payload_overrides": {"total_quantity": 0},
+    "expected_error_field": "total_quantity"
+  },
+  {
+    "case_id": "expires_at_without_timezone",
+    "payload_overrides": {"expires_at": "2999-01-01T00:00:00"},
+    "expected_error_field": "expires_at"
+  }
+]

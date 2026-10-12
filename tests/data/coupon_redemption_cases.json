@@ -1,0 +1,42 @@
+[
+  {
+    "case_id": "below_minimum_spend",
+    "minimum_order_amount_cents": 10000,
+    "discount_amount_cents": 2000,
+    "order_amount_cents": 9999,
+    "expected_status_code": 409,
+    "expected_coupon_status": "claimed",
+    "expected_applied_discount_cents": null,
+    "expected_payable_amount_cents": null
+  },
+  {
+    "case_id": "exactly_at_minimum_spend",
+    "minimum_order_amount_cents": 10000,
+    "discount_amount_cents": 2000,
+    "order_amount_cents": 10000,
+    "expected_status_code": 200,
+    "expected_coupon_status": "redeemed",
+    "expected_applied_discount_cents": 2000,
+    "expected_payable_amount_cents": 8000
+  },
+  {
+    "case_id": "above_minimum_spend",
+    "minimum_order_amount_cents": 10000,
+    "discount_amount_cents": 2000,
+    "order_amount_cents": 12000,
+    "expected_status_code": 200,
+    "expected_coupon_status": "redeemed",
+    "expected_applied_discount_cents": 2000,
+    "expected_payable_amount_cents": 10000
+  },
+  {
+    "case_id": "discount_larger_than_order",
+    "minimum_order_amount_cents": 1000,
+    "discount_amount_cents": 2000,
+    "order_amount_cents": 1000,
+    "expected_status_code": 200,
+    "expected_coupon_status": "redeemed",
+    "expected_applied_discount_cents": 1000,
+    "expected_payable_amount_cents": 0
+  }
+]

@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+*.db
+allure-results/
+allure-report/
+coupon-report.html
