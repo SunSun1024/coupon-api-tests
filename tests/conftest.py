@@ -1,11 +1,40 @@
+import json
 import os
 
+import allure
 import pytest
 import requests
 
 from coupon_api.database import DATABASE_PATH
 from tests.support.coupon_api_client import CouponApiClient
 from tests.support.data_cleanup import CouponDataCleanup
+
+
+def _attach_failed_api_exchanges(item, report):
+    if report.when != "call" or not report.failed:
+        return
+
+    api_client = item.funcargs.get("api_client")
+    if api_client is None:
+        return
+
+    for request_number, exchange in enumerate(api_client.exchanges, start=1):
+        request = exchange["request"]
+        allure.attach(
+            json.dumps(exchange, ensure_ascii=False, indent=2),
+            name=(
+                f"API {request_number}: {request['method']} "
+                f"{request['path']}"
+            ),
+            attachment_type=allure.attachment_type.JSON,
+        )
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    """Attach HTTP details to Allure only after a failed test call."""
+    outcome = yield
+    _attach_failed_api_exchanges(item, outcome.get_result())
 
 
 @pytest.fixture(scope="session")

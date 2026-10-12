@@ -65,11 +65,13 @@ def claim_coupon(user_id: str, coupon_id: str):
         if coupon["remaining_quantity"] <= 0:
             raise HTTPException(status_code=409, detail="coupon is out of stock")
         try:
-            connection.execute(
+            stock_update = connection.execute(
                 "UPDATE coupons SET remaining_quantity = remaining_quantity - 1 "
                 "WHERE coupon_id = ? AND remaining_quantity > 0",
                 (coupon_id,),
             )
+            if stock_update.rowcount != 1:
+                raise HTTPException(status_code=409, detail="coupon is out of stock")
             connection.execute(
                 """INSERT INTO user_coupons
                 (user_coupon_id, user_id, coupon_id, status, claimed_at)

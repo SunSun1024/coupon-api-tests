@@ -35,6 +35,10 @@ allure open allure-report
 
 `allure-results` 是测试运行生成的原始结果，`allure-report` 是可浏览的 HTML 报告。两者都已加入 `.gitignore`。只想看已有的 HTML 报告时，也可以直接在浏览器打开 `allure-report/index.html`。
 
+使用 `api_client` 的测试如果在执行阶段失败，Allure 的用例详情会显示按请求顺序命名的 JSON 附件，例如 `API 1: POST /coupons`。附件记录请求方法、路径和 JSON 请求体，以及响应状态码和正文；发生连接异常时记录异常类型和消息。成功用例、setup 阶段失败和 teardown 阶段失败都不会附加这些 HTTP 详情。为避免泄露凭据，请求头和 Cookie 不会被记录。
+
+过期边界测试通过接口创建优惠券，再将数据库中的过期时间改为过去，从而模拟时间经过；领取与核销动作仍通过 HTTP API 执行。最后一张库存的并发测试使用独立临时 SQLite 数据库，并在真实路由函数访问库存更新语句前同步多个线程，稳定复现并发竞争；它验证的是路由业务逻辑和数据库库存保护，不经过 HTTP 传输层。
+
 ## GitHub Actions
 
 `.github/workflows/coupon-api-tests.yml` 会在 push 和 pull request 时启动本地 FastAPI 服务，用独立 SQLite 数据库运行 `regression` 用例，生成 Allure 报告，并将报告作为名为 `coupon-api-allure-report` 的 workflow artifact 上传。打开对应的 Actions 运行记录，在 Artifacts 区域下载并解压即可查看 `index.html`。
