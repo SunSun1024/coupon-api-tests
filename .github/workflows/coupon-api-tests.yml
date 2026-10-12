@@ -10,8 +10,6 @@ permissions:
 jobs:
   regression:
     runs-on: ubuntu-latest
-    env:
-      COUPON_DB_PATH: ${{ runner.temp }}/coupon-api-tests.db
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
@@ -34,6 +32,8 @@ jobs:
           npm install --global allure
 
       - name: Start API and run regression tests
+        env:
+          COUPON_DB_PATH: ${{ runner.temp }}/coupon-api-tests.db
         run: |
           python -m uvicorn coupon_api.main:app --host 127.0.0.1 --port 8000 > "$RUNNER_TEMP/coupon-api.log" 2>&1 &
           server_pid=$!
