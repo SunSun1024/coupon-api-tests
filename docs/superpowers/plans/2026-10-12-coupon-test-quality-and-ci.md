@@ -70,7 +70,7 @@
 - A successful run uploads coupon-api-allure-report.
 
 - [x] Run focused locally runnable tests (14 passed), collect the regression suite (37 collected, 1 deselected), compile the Python sources, and run git diff --check. HTTP integration tests require a live API and are delegated to the Actions run.
-- [ ] Review the staged diff and commit the finished work on the current branch.
+- [x] Review the staged diff and commit the finished work on the current branch.
 - [ ] Push the commit to origin.
 - [ ] Inspect the resulting Actions run and confirm its test result and report artifact.
 - [ ] If the run fails, fix the cause, re-run locally where possible, push the correction, and inspect the next run.
