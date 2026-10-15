@@ -1,0 +1,360 @@
+{
+  "version": 1,
+  "source_run_id": "20261014T074336284080Z-a4ef3697",
+  "cases": [
+    {
+      "source_case_id": "order_non_stacking",
+      "environment": "local-coupon",
+      "fixtures": [
+        {
+          "name": "user",
+          "factory": "user_id"
+        },
+        {
+          "name": "order",
+          "factory": "order_id"
+        },
+        {
+          "name": "name",
+          "factory": "coupon_name"
+        },
+        {
+          "name": "expiry",
+          "factory": "expires_at"
+        }
+      ],
+      "operations": [
+        {
+          "op": "http_request",
+          "step_id": "create1",
+          "operation_id": "createCoupon",
+          "method": "POST",
+          "path": "/coupons",
+          "path_params": {},
+          "json_body": {
+            "name": {
+              "kind": "ref",
+              "name": "name"
+            },
+            "discount_amount_cents": {
+              "kind": "literal",
+              "value": 2000
+            },
+            "minimum_order_amount_cents": {
+              "kind": "literal",
+              "value": 10000
+            },
+            "total_quantity": {
+              "kind": "literal",
+              "value": 1
+            },
+            "expires_at": {
+              "kind": "ref",
+              "name": "expiry"
+            }
+          },
+          "captures": {
+            "coupon1": "/coupon_id"
+          }
+        },
+        {
+          "op": "assert_status",
+          "step_id": "create1_status",
+          "request_id": "create1",
+          "expected": 201
+        },
+        {
+          "op": "http_request",
+          "step_id": "claim1",
+          "operation_id": "claimCoupon",
+          "method": "POST",
+          "path": "/users/{user_id}/coupons/{coupon_id}/claims",
+          "path_params": {
+            "user_id": {
+              "kind": "ref",
+              "name": "user"
+            },
+            "coupon_id": {
+              "kind": "ref",
+              "name": "coupon1"
+            }
+          },
+          "json_body": null,
+          "captures": {
+            "claim1": "/user_coupon_id"
+          }
+        },
+        {
+          "op": "assert_status",
+          "step_id": "claim1_status",
+          "request_id": "claim1",
+          "expected": 201
+        },
+        {
+          "op": "http_request",
+          "step_id": "create2",
+          "operation_id": "createCoupon",
+          "method": "POST",
+          "path": "/coupons",
+          "path_params": {},
+          "json_body": {
+            "name": {
+              "kind": "ref",
+              "name": "name"
+            },
+            "discount_amount_cents": {
+              "kind": "literal",
+              "value": 2000
+            },
+            "minimum_order_amount_cents": {
+              "kind": "literal",
+              "value": 10000
+            },
+            "total_quantity": {
+              "kind": "literal",
+              "value": 1
+            },
+            "expires_at": {
+              "kind": "ref",
+              "name": "expiry"
+            }
+          },
+          "captures": {
+            "coupon2": "/coupon_id"
+          }
+        },
+        {
+          "op": "assert_status",
+          "step_id": "create2_status",
+          "request_id": "create2",
+          "expected": 201
+        },
+        {
+          "op": "http_request",
+          "step_id": "claim2",
+          "operation_id": "claimCoupon",
+          "method": "POST",
+          "path": "/users/{user_id}/coupons/{coupon_id}/claims",
+          "path_params": {
+            "user_id": {
+              "kind": "ref",
+              "name": "user"
+            },
+            "coupon_id": {
+              "kind": "ref",
+              "name": "coupon2"
+            }
+          },
+          "json_body": null,
+          "captures": {
+            "claim2": "/user_coupon_id"
+          }
+        },
+        {
+          "op": "assert_status",
+          "step_id": "claim2_status",
+          "request_id": "claim2",
+          "expected": 201
+        },
+        {
+          "op": "http_request",
+          "step_id": "redeem1",
+          "operation_id": "redeemCoupon",
+          "method": "POST",
+          "path": "/users/{user_id}/coupons/{user_coupon_id}/redemptions",
+          "path_params": {
+            "user_id": {
+              "kind": "ref",
+              "name": "user"
+            },
+            "user_coupon_id": {
+              "kind": "ref",
+              "name": "claim1"
+            }
+          },
+          "json_body": {
+            "order_id": {
+              "kind": "ref",
+              "name": "order"
+            },
+            "order_amount_cents": {
+              "kind": "literal",
+              "value": 10000
+            }
+          },
+          "captures": {}
+        },
+        {
+          "op": "assert_status",
+          "step_id": "redeem1_status",
+          "request_id": "redeem1",
+          "expected": 200
+        },
+        {
+          "op": "http_request",
+          "step_id": "redeem2",
+          "operation_id": "redeemCoupon",
+          "method": "POST",
+          "path": "/users/{user_id}/coupons/{user_coupon_id}/redemptions",
+          "path_params": {
+            "user_id": {
+              "kind": "ref",
+              "name": "user"
+            },
+            "user_coupon_id": {
+              "kind": "ref",
+              "name": "claim2"
+            }
+          },
+          "json_body": {
+            "order_id": {
+              "kind": "ref",
+              "name": "order"
+            },
+            "order_amount_cents": {
+              "kind": "literal",
+              "value": 10000
+            }
+          },
+          "captures": {}
+        },
+        {
+          "op": "assert_status",
+          "step_id": "redeem2_status",
+          "request_id": "redeem2",
+          "expected": 409
+        },
+        {
+          "op": "assert_json",
+          "step_id": "second_error",
+          "request_id": "redeem2",
+          "pointer": "/detail",
+          "expected": {
+            "kind": "literal",
+            "value": "order already has a redeemed coupon"
+          }
+        },
+        {
+          "op": "http_request",
+          "step_id": "query1",
+          "operation_id": "getUserCoupon",
+          "method": "GET",
+          "path": "/users/{user_id}/coupons/{user_coupon_id}",
+          "path_params": {
+            "user_id": {
+              "kind": "ref",
+              "name": "user"
+            },
+            "user_coupon_id": {
+              "kind": "ref",
+              "name": "claim1"
+            }
+          },
+          "json_body": null,
+          "captures": {}
+        },
+        {
+          "op": "assert_status",
+          "step_id": "query1_status",
+          "request_id": "query1",
+          "expected": 200
+        },
+        {
+          "op": "assert_json",
+          "step_id": "state1",
+          "request_id": "query1",
+          "pointer": "/status",
+          "expected": {
+            "kind": "literal",
+            "value": "redeemed"
+          }
+        },
+        {
+          "op": "http_request",
+          "step_id": "query2",
+          "operation_id": "getUserCoupon",
+          "method": "GET",
+          "path": "/users/{user_id}/coupons/{user_coupon_id}",
+          "path_params": {
+            "user_id": {
+              "kind": "ref",
+              "name": "user"
+            },
+            "user_coupon_id": {
+              "kind": "ref",
+              "name": "claim2"
+            }
+          },
+          "json_body": null,
+          "captures": {}
+        },
+        {
+          "op": "assert_status",
+          "step_id": "query2_status",
+          "request_id": "query2",
+          "expected": 200
+        },
+        {
+          "op": "assert_json",
+          "step_id": "state2",
+          "request_id": "query2",
+          "pointer": "/status",
+          "expected": {
+            "kind": "literal",
+            "value": "claimed"
+          }
+        },
+        {
+          "op": "assert_json",
+          "step_id": "first_order_unchanged",
+          "request_id": "query1",
+          "pointer": "/order_id",
+          "expected": {
+            "kind": "ref",
+            "name": "order"
+          }
+        },
+        {
+          "op": "assert_json",
+          "step_id": "first_discount_unchanged",
+          "request_id": "query1",
+          "pointer": "/applied_discount_cents",
+          "expected": {
+            "kind": "literal",
+            "value": 2000
+          }
+        },
+        {
+          "op": "assert_json",
+          "step_id": "first_payment_unchanged",
+          "request_id": "query1",
+          "pointer": "/payable_amount_cents",
+          "expected": {
+            "kind": "literal",
+            "value": 8000
+          }
+        },
+        {
+          "op": "assert_json",
+          "step_id": "second_order_empty",
+          "request_id": "query2",
+          "pointer": "/order_id",
+          "expected": {
+            "kind": "literal",
+            "value": null
+          }
+        },
+        {
+          "op": "assert_json",
+          "step_id": "second_redemption_empty",
+          "request_id": "query2",
+          "pointer": "/redeemed_at",
+          "expected": {
+            "kind": "literal",
+            "value": null
+          }
+        }
+      ]
+    }
+  ]
+}

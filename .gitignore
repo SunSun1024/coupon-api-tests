@@ -6,3 +6,5 @@ __pycache__/
 allure-results/
 allure-report/
 coupon-report.html
+artifacts/ai_testgen/
+artifacts/ai_testexec/

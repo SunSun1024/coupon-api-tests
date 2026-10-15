@@ -1,0 +1,89 @@
+{
+  "metadata": {
+    "run_id": "20261014T074336284080Z-a4ef3697",
+    "generated_at": "2026-10-14T07:43:36.284080Z",
+    "model_name": "unknown-model",
+    "prompt_version": "test-case-generation-v6",
+    "requirement_version": "non-stacking-v1",
+    "input_sha256": "1c803cbc8626d41a20529c96be449b77ae65e7bbc5c0340507cf4482a608b8a1",
+    "token_usage": {
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0
+    },
+    "llm_call_count": 1
+  },
+  "source_catalog": [
+    {
+      "source_id": "REQ-001",
+      "kind": "requirement",
+      "description": "requirements paragraph 1",
+      "location": "requirements paragraph 1"
+    },
+    {
+      "source_id": "API-001",
+      "kind": "api_operation",
+      "description": "POST /coupons",
+      "location": "paths./coupons.post"
+    },
+    {
+      "source_id": "API-002",
+      "kind": "api_operation",
+      "description": "POST /users/{user_id}/coupons/{coupon_id}/claims",
+      "location": "paths./users/{user_id}/coupons/{coupon_id}/claims.post"
+    },
+    {
+      "source_id": "API-003",
+      "kind": "api_operation",
+      "description": "GET /users/{user_id}/coupons/{user_coupon_id}",
+      "location": "paths./users/{user_id}/coupons/{user_coupon_id}.get"
+    },
+    {
+      "source_id": "API-004",
+      "kind": "api_operation",
+      "description": "POST /users/{user_id}/coupons/{user_coupon_id}/redemptions",
+      "location": "paths./users/{user_id}/coupons/{user_coupon_id}/redemptions.post"
+    }
+  ],
+  "generation_focus": null,
+  "test_suite": {
+    "suite_title": "同一订单不可叠加优惠券",
+    "test_cases": [
+      {
+        "case_id": "order_non_stacking",
+        "title": "拒绝同一订单的第二张券",
+        "objective": "确认一张成功核销后，另一张券不能核销相同订单",
+        "priority": "P1",
+        "scenario_type": "negative",
+        "preconditions": [
+          "同一用户领取两张不同的有效券"
+        ],
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "先核销第一张，再以同一订单核销第二张",
+            "expected_result": "第二次返回409，第二张券仍为claimed",
+            "api_path": "/users/{user_id}/coupons/{user_coupon_id}/redemptions",
+            "http_method": "POST",
+            "operation_id": "redeemCoupon"
+          }
+        ],
+        "expected_results": [
+          "第一张为redeemed，第二张为claimed"
+        ],
+        "source_refs": [
+          "REQ-001",
+          "API-004"
+        ],
+        "unverifiable_expectations": []
+      }
+    ],
+    "clarification_questions": []
+  },
+  "validation": {
+    "status": "passed",
+    "case_count": 1,
+    "warnings": [],
+    "unverifiable_expectations": []
+  }
+}

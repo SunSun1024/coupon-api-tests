@@ -89,6 +89,9 @@ def claim_coupon(user_id: str, coupon_id: str):
 def redeem_coupon(user_id: str, user_coupon_id: str, payload: RedemptionRequest):
     now = utc_now()
     with connect() as connection:
+        # SQLite 的 IMMEDIATE 事务先取得写锁，使“检查订单是否已用券”和“保存核销”串行执行。
+        # 否则两个并发请求可能同时查到订单尚未使用优惠券，然后都成功核销。
+        connection.execute("BEGIN IMMEDIATE")
         record = connection.execute(
             """SELECT uc.*, c.expires_at, c.minimum_order_amount_cents,
             c.discount_amount_cents
@@ -104,6 +107,17 @@ def redeem_coupon(user_id: str, user_coupon_id: str, payload: RedemptionRequest)
             raise HTTPException(status_code=409, detail="coupon has expired")
         if payload.order_amount_cents < record["minimum_order_amount_cents"]:
             raise HTTPException(status_code=409, detail="order amount is below coupon minimum")
+        existing_order_redemption = connection.execute(
+            """SELECT 1 FROM user_coupons
+            WHERE order_id = ? AND status = 'redeemed'
+            LIMIT 1""",
+            (payload.order_id,),
+        ).fetchone()
+        if existing_order_redemption is not None:
+            raise HTTPException(
+                status_code=409,
+                detail="order already has a redeemed coupon",
+            )
         applied_discount_cents = min(
             record["discount_amount_cents"], payload.order_amount_cents
         )

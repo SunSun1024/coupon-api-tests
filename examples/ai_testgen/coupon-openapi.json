@@ -1,0 +1,336 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Coupon API demo",
+    "version": "1.1.0",
+    "description": "优惠券示例 API。标准示例券为满 100 元减 20 元；金额单位为整数分，expires_at 由创建方设置为创建时间后 7 天的 UTC 时间。"
+  },
+  "paths": {
+    "/coupons": {
+      "post": {
+        "operationId": "createCoupon",
+        "summary": "Create a coupon",
+        "description": "创建一张优惠券。示例活动使用最低消费 10000 分和优惠金额 2000 分；有效期由创建方设置为创建时间后 7 天。示例 expires_at 假设创建时间为 2030-01-01T00:00:00Z。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CouponCreateRequest" },
+              "example": {
+                "name": "满100减20测试券",
+                "discount_amount_cents": 2000,
+                "minimum_order_amount_cents": 10000,
+                "total_quantity": 10,
+                "expires_at": "2030-01-08T00:00:00Z"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Coupon created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CouponCreatedResponse" },
+                "example": { "coupon_id": "coupon-001", "name": "满100减20测试券" }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request or expires_at is not in the future",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    { "$ref": "#/components/schemas/ErrorResponse" },
+                    { "$ref": "#/components/schemas/ValidationErrorResponse" }
+                  ]
+                },
+                "examples": {
+                  "expiryInPast": { "value": { "detail": "expires_at must be in the future" } },
+                  "invalidField": { "value": { "detail": [{ "loc": ["body", "name"], "msg": "Field required", "type": "missing" }] } }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{user_id}/coupons/{coupon_id}/claims": {
+      "post": {
+        "operationId": "claimCoupon",
+        "summary": "Claim a coupon",
+        "description": "同一用户对同一个 coupon_id 最多成功领取一次。领取不改变券的 expires_at；重复领取、券已过期或库存不足均返回 409。",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "coupon_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Coupon claimed",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CouponClaimedResponse" },
+                "example": { "user_coupon_id": "user-coupon-001", "coupon_id": "coupon-001", "status": "claimed" }
+              }
+            }
+          },
+          "404": {
+            "description": "Coupon does not exist",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" }, "example": { "detail": "coupon not found" } } }
+          },
+          "409": {
+            "description": "Coupon is expired, out of stock, or was already claimed by this user",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "examples": {
+                  "expired": { "value": { "detail": "coupon has expired" } },
+                  "outOfStock": { "value": { "detail": "coupon is out of stock" } },
+                  "alreadyClaimed": { "value": { "detail": "user already claimed coupon" } }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{user_id}/coupons/{user_coupon_id}/redemptions": {
+      "post": {
+        "operationId": "redeemCoupon",
+        "summary": "Redeem a coupon claimed by the user",
+        "description": "核销本人已领取、仍有效且未核销的优惠券。订单需达到该券最低消费金额。同一 order_id 最多只能有一次成功的优惠券核销；后续用其他券核销相同订单返回 409，已成功的核销保持不变。",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "user_coupon_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RedemptionRequest" },
+              "example": { "order_id": "order-001", "order_amount_cents": 10000 }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Coupon redeemed",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RedemptionResponse" },
+                "example": {
+                  "user_coupon_id": "user-coupon-001",
+                  "order_id": "order-001",
+                  "status": "redeemed",
+                  "applied_discount_cents": 2000,
+                  "payable_amount_cents": 8000
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The coupon was not claimed by this user or does not exist",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" }, "example": { "detail": "claimed coupon not found" } } }
+          },
+          "409": {
+            "description": "Coupon cannot be redeemed under current conditions",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "examples": {
+                  "expired": { "value": { "detail": "coupon has expired" } },
+                  "belowMinimum": { "value": { "detail": "order amount is below coupon minimum" } },
+                  "alreadyRedeemed": { "value": { "detail": "coupon is already redeemed" } },
+                  "couponAlreadyAppliedToOrder": { "value": { "detail": "order already has a redeemed coupon" } }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid redemption request",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ValidationErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/users/{user_id}/coupons/{user_coupon_id}": {
+      "get": {
+        "operationId": "getUserCoupon",
+        "summary": "Get a user's coupon state",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "user_coupon_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User coupon state",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserCouponResponse" },
+                "examples": {
+                  "claimed": {
+                    "value": {
+                      "user_coupon_id": "user-coupon-001",
+                      "user_id": "user-001",
+                      "coupon_id": "coupon-001",
+                      "status": "claimed",
+                      "claimed_at": "2030-01-01T00:00:00Z",
+                      "order_id": null,
+                      "redeemed_at": null,
+                      "applied_discount_cents": null,
+                      "payable_amount_cents": null
+                    }
+                  },
+                  "redeemed": {
+                    "value": {
+                      "user_coupon_id": "user-coupon-001",
+                      "user_id": "user-001",
+                      "coupon_id": "coupon-001",
+                      "status": "redeemed",
+                      "claimed_at": "2030-01-01T00:00:00Z",
+                      "order_id": "order-001",
+                      "redeemed_at": "2030-01-02T00:00:00Z",
+                      "applied_discount_cents": 2000,
+                      "payable_amount_cents": 8000
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The coupon was not claimed by this user or does not exist",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" }, "example": { "detail": "claimed coupon not found" } } }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CouponCreateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "discount_amount_cents", "minimum_order_amount_cents", "total_quantity", "expires_at"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "discount_amount_cents": { "type": "integer", "minimum": 1, "example": 2000 },
+          "minimum_order_amount_cents": { "type": "integer", "minimum": 0, "example": 10000 },
+          "total_quantity": { "type": "integer", "minimum": 1, "example": 10 },
+          "expires_at": { "type": "string", "format": "date-time", "description": "UTC 到期时间；示例活动设置为创建时间加 7 天。" }
+        }
+      },
+      "CouponCreatedResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["coupon_id", "name"],
+        "properties": {
+          "coupon_id": { "type": "string" },
+          "name": { "type": "string" }
+        }
+      },
+      "CouponClaimedResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["user_coupon_id", "coupon_id", "status"],
+        "properties": {
+          "user_coupon_id": { "type": "string" },
+          "coupon_id": { "type": "string" },
+          "status": { "type": "string", "const": "claimed" }
+        }
+      },
+      "RedemptionRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["order_id", "order_amount_cents"],
+        "properties": {
+          "order_id": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "order_amount_cents": { "type": "integer", "minimum": 0, "example": 10000 }
+        }
+      },
+      "RedemptionResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["user_coupon_id", "order_id", "status", "applied_discount_cents", "payable_amount_cents"],
+        "properties": {
+          "user_coupon_id": { "type": "string" },
+          "order_id": { "type": "string" },
+          "status": { "type": "string", "const": "redeemed" },
+          "applied_discount_cents": { "type": "integer", "minimum": 0, "example": 2000 },
+          "payable_amount_cents": { "type": "integer", "minimum": 0, "example": 8000 }
+        }
+      },
+      "UserCouponResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["user_coupon_id", "user_id", "coupon_id", "status", "claimed_at", "order_id", "redeemed_at", "applied_discount_cents", "payable_amount_cents"],
+        "properties": {
+          "user_coupon_id": { "type": "string" },
+          "user_id": { "type": "string" },
+          "coupon_id": { "type": "string" },
+          "status": { "type": "string", "enum": ["claimed", "redeemed"] },
+          "claimed_at": { "type": "string", "format": "date-time" },
+          "order_id": { "type": ["string", "null"] },
+          "redeemed_at": { "type": ["string", "null"], "format": "date-time" },
+          "applied_discount_cents": { "type": ["integer", "null"], "minimum": 0 },
+          "payable_amount_cents": { "type": ["integer", "null"], "minimum": 0 }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["detail"],
+        "properties": { "detail": { "type": "string" } }
+      },
+      "ValidationErrorResponse": {
+        "type": "object",
+        "required": ["detail"],
+        "properties": {
+          "detail": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["loc", "msg", "type"],
+              "properties": {
+                "loc": { "type": "array", "items": { "type": ["string", "integer"] } },
+                "msg": { "type": "string" },
+                "type": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
